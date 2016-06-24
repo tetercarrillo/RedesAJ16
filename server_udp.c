@@ -40,36 +40,127 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
-    if ((strcmp(argv[1],"-l")!=0) ||
-	    (strcmp(argv[3],"-i")!=0) ||
-	    (strcmp(argv[5],"-o")!=0)) {
+    if ((strcmp(argv[1],"-l")!=0) &&
+	    (strcmp(argv[1],"-i")!=0) &&
+	    (strcmp(argv[1],"-o")!=0)) {
 
-	    fprintf(stderr,"ERROR, argumentos invalidos.\n");
+	    fprintf(stderr,"ERROR, flag invalido.\nEl primer flag puede tener las siguientes opciones:\n-l\n-i\n-o\n");
 	    exit(1);
     }
 
-    if ((!sscanf( argv[2], "%d", &num_puerto)) || (num_puerto<20122)){
-    	fprintf(stderr, "ERROR, numero de puerto invalido.\nUtilice el puerto 20122 ó 21216\n");
+    if ((strcmp(argv[3],"-l")!=0) &&
+	    (strcmp(argv[3],"-i")!=0) &&
+	    (strcmp(argv[3],"-o")!=0)) {
 
+	    fprintf(stderr,"ERROR, flag invalido.\nEl segundo flag puede tener las siguientes opciones:\n-l\n-i\n-o\n");
+	    exit(1);
     }
 
-    bitacora_entrada = argv[4];
-    bitacora_salida = argv[6];
-   
-   	fp_entrada = fopen(bitacora_entrada,"w+");
-   	fprintf(fp_entrada,"Bitácora de entrada\n");
+    if ((strcmp(argv[5],"-l")!=0) &&
+	    (strcmp(argv[5],"-i")!=0) &&
+	    (strcmp(argv[5],"-o")!=0)) {
 
-   	if (!(fp_entrada)){
-   		fprintf(stderr,"ERROR, el archivo de entrada no se abrió correctamente\n");
-   	}
+	    fprintf(stderr,"ERROR, flag invalido.\nEl tercer flag puede tener las siguientes opciones:\n-l\n-i\n-o\n");
+	    exit(1);
+    }
 
 
-   	fp_salida = fopen(bitacora_salida,"w+");
-   	fprintf(fp_salida,"Bitácora de salida\n");
+    //COMPARACION 1111111
+    if (strcmp(argv[1],"-l")==0){
+            if (!sscanf( argv[2], "%d", &num_puerto)){
+				fprintf(stderr, "ERROR, puerto invalido.\n");
+				exit(1);
+            }
+            else{
+            	if (num_puerto<20122){
+            		fprintf(stderr, "ERROR, numero de puerto invalido.\nUtilice el puerto 20122 ó 21216\n");
+            		exit(1);
+            	}
+            }
+    }
+    if (strcmp(argv[1],"-i")==0){
+            bitacora_entrada = argv[6];
+            fp_entrada = fopen(bitacora_entrada,"w+");
+            if (!(fp_entrada)){
+   				fprintf(stderr,"ERROR, el archivo de entrada no se abrió correctamente\n");
+   			}
+   			fprintf(fp_entrada,"Bitácora de entrada\n");
+    }
 
-   	if (!(fp_salida)){
-   		fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
-   	}
+    if (strcmp(argv[1],"-o")==0){
+            bitacora_salida = argv[6];
+            fp_salida = fopen(bitacora_salida,"w+");
+            if (!(fp_salida)){
+   				fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
+   			}
+   			fprintf(fp_salida,"Bitácora de salida\n");
+    }
+
+
+    //COMPARACION 33333333
+    if (strcmp(argv[3],"-l")==0){
+            if (!sscanf( argv[4], "%d", &num_puerto)){
+				fprintf(stderr, "ERROR, puerto invalido.\n");
+				exit(1);
+            }
+            else{
+            	if (num_puerto<20122){
+            		fprintf(stderr, "ERROR, numero de puerto invalido.\nUtilice el puerto 20122 ó 21216\n");
+            		exit(1);
+            	}
+            }
+    }
+    if (strcmp(argv[3],"-i")==0){
+            bitacora_entrada = argv[4];
+            fp_entrada = fopen(bitacora_entrada,"w+");
+            if (!(fp_entrada)){
+   				fprintf(stderr,"ERROR, el archivo de entrada no se abrió correctamente\n");
+   			}
+   			fprintf(fp_entrada,"Bitácora de entrada\n");
+    }
+
+    if (strcmp(argv[3],"-o")==0){
+            bitacora_salida = argv[4];
+            fp_salida = fopen(bitacora_salida,"w+");
+            if (!(fp_salida)){
+   				fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
+   			}
+   			fprintf(fp_salida,"Bitácora de salida\n");
+    }
+
+
+    // COMPARACIÓN 555555555555
+    if (strcmp(argv[5],"-l")==0){
+            if (!sscanf( argv[6], "%d", &num_puerto)){
+				fprintf(stderr, "ERROR, puerto invalido.\n");
+				exit(1);
+            }
+            else{
+            	if (num_puerto<20122){
+            		fprintf(stderr, "ERROR, numero de puerto invalido.\nUtilice el puerto 20122 ó 21216\n");
+            		exit(1);
+            	}
+            }
+    }
+    if (strcmp(argv[5],"-i")==0){
+            bitacora_entrada = argv[6];
+            fp_entrada = fopen(bitacora_entrada,"w+");
+            if (!(fp_entrada)){
+   				fprintf(stderr,"ERROR, el archivo de entrada no se abrió correctamente\n");
+   			}
+   			fprintf(fp_entrada,"Bitácora de entrada\n");
+    }
+
+    if (strcmp(argv[5],"-o")==0){
+            bitacora_salida = argv[6];
+            fp_salida = fopen(bitacora_salida,"w+");
+            if (!(fp_salida)){
+   				fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
+   			}
+   			fprintf(fp_salida,"Bitácora de salida\n");
+    }
+
+
 
 	/* se crea el socket */
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
