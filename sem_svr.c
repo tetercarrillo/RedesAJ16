@@ -249,8 +249,8 @@ int main(int argc, char *argv[]){
 			   		}
    				  	fprintf(stderr, "VERIFIQUE TODO ESTUVIESE BIEN\n");
 			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO 				PLACA VEHICULO 				CÓDIGO VEHÍCULO\n");
-		    		fprintf(fp_entrada,"%s\n",
-		    			ticket_entrada);
+		    		fprintf(fp_entrada,"%s 				%s 				\n",
+		    			ticket_entrada,placa_vehiculo);
 
 		    		fclose(fp_entrada);
 		    		fprintf(stderr, "CERRE EL ARCHIVO\n");
