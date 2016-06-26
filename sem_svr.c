@@ -27,7 +27,7 @@ typedef struct vehiculo{
 	int activo;
 	char placa_vehiculo[10];
 	time_t entrada;
-	unsigned long identificador;
+	int identificador;
 	char ticket_entrada[50];
 } vehiculos;
 
@@ -248,13 +248,14 @@ int main(int argc, char *argv[]){
 		    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
 		    		estacionar_vehiculo (ticket_entrada,placa_vehiculo,inicio);
 
-		    		fprintf(stderr, "VOY A ABRIR EL ARCHIVO DE ENTRADAAAAAAAEKJIQJRIWHRIYWIRIR\n");
+		    		posicion = posicion_vehiculo(placa_vehiculo);
+
 		    		fp_entrada = fopen(bitacora_entrada,"a");
 			        if (!(fp_entrada)){
 						fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 			   		}
 			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO 				PLACA VEHICULO 				CÓDIGO VEHÍCULO\n");
-		    		fprintf(fp_entrada,"%s 				%s 				%lu\n",
+		    		fprintf(fp_entrada,"%s 				%s 				%d\n",
 		    			ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
 
 		    		fclose(fp_entrada);
@@ -263,6 +264,7 @@ int main(int argc, char *argv[]){
 		    		strcpy(buf_salida,bytes);
 		    		strcpy(buf_aux, ticket_entrada);
 		    		strcat(buf_salida,buf_aux);
+		    		fprintf(stderr, "VOY A MANDAR LA INFORMACION\n");
 		    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 					sizeof(struct sockaddr))) == -1) {
 						perror("sendto");
@@ -310,7 +312,7 @@ int main(int argc, char *argv[]){
 					fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 		   		}
 		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO 				FECHA Y HORA DE SALIDA				PLACA VEHÍCULO 				CÓDIGO VEHÍCULO				MONTO A CANCELAR\n");
-		    	fprintf(fp_salida,"%s				%s				%s				%lu				%d\n",
+		    	fprintf(fp_salida,"%s				%s				%s				%d				%d\n",
 		    		veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
 
 		    	fclose(fp_salida);
@@ -406,12 +408,6 @@ int salida_vehiculo(char *placa, time_t salida){
 }
 
 
-unsigned long generador_ids(int id){
-        return id + 194782658928;
-
-}
-
-
 void estacionar_vehiculo(char* ticket, char *placa, time_t entrada){
 	int i;
 
@@ -421,7 +417,7 @@ void estacionar_vehiculo(char* ticket, char *placa, time_t entrada){
 		if (veh_estacionados[i].activo == 0){
 
 			strcpy(veh_estacionados[i].placa_vehiculo,placa);
-			veh_estacionados[i].identificador = generador_ids(i);
+			veh_estacionados[i].identificador = i;
 			veh_estacionados[i].entrada = entrada;
 			veh_estacionados[i].activo = 1;
 			strcpy(veh_estacionados[i].ticket_entrada,ticket);

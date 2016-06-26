@@ -267,7 +267,10 @@ int main(int argc, char *argv[]){
 	/* enviamos el mensaje */
 
 
-
+    char *ptr;
+    int bytes_recv;
+    char mensaje[100];
+    char buf_aux[100];
 	for(i = 0; i < 3; i++){
 
         if((numbytes_send=sendto(sockfd,buffer,strlen(buffer),0,(struct sockaddr*) & their_addr, sizeof(struct sockaddr))) == -1) {
@@ -279,15 +282,14 @@ int main(int argc, char *argv[]){
             exit(3);
         }
 
-        char *ptr;
-        int bytes_recv;
-        char mensaje[100];
-        char buf_aux[10];
+        
         strcpy(buf_aux, buf_entrada);
 
         buf_aux[numbytes] = '\0';
         buf_entrada[numbytes] = '\0';
         ptr = strtok(buf_aux, "!");
+
+        //fprintf(stderr, "%s\n",buf_entrada);
 
         /* Obtengo si el vehiculo desea salir o entrar*/
         bytes_recv = atoi(ptr);
@@ -296,13 +298,14 @@ int main(int argc, char *argv[]){
             /* Obtengo la placa del vehiculo */
             strcpy(mensaje,ptr);
             ptr = strtok(NULL, "!");
+
         }
         
         
         if (bytes_recv == numbytes_send){
             printf("Los datos enviados al servidor se enviaron correctamente.\n");
             printf("LA INFORMACION DEL ESTACIOAMIENTO ES: %s\n", mensaje);
-            exit(1);
+            break;
         }
         else if (bytes_recv < numbytes_send){
             i = 0;
