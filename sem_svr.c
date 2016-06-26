@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <sys/time.h>
+#include <inttypes.h>
 #define SERVER_PORT 4321
 #define BUFFER_LEN 1024
 #define MAX_VEHICULOS 200
@@ -27,6 +28,7 @@ typedef struct vehiculo{
 	char placa_vehiculo[10];
 	time_t entrada;
 	unsigned long identificador;
+	char ticket_entrada[50];
 } vehiculos;
 
 vehiculos veh_estacionados[200];
@@ -36,7 +38,7 @@ int tarifa (time_t inicio, time_t salida);
 int posicion_vehiculo(char *placa);
 int salida_vehiculo(char *placa, time_t salida);
 unsigned long generador_ids(int id);
-void estacionar_vehiculo(char *placa, time_t entrada);
+void estacionar_vehiculo(char* ticket, char *placa, time_t entrada);
 int verificar_placa(char *placa);
 
 
@@ -44,7 +46,9 @@ int verificar_placa(char *placa);
 int main(int argc, char *argv[]){
 	char buf_salida[255] = "";
 	char ticket_entrada[50]="";
-	int sockfd; /* descriptor para el socket */
+	char ticket_salida[50]="";
+	int sockfd,bit_dia,bit_mes,bit_ano;
+	 /* descriptor para el socket */
 	struct sockaddr_in my_addr; /* direccion IP y numero de puerto local */
 	struct sockaddr_in their_addr; /* direccion IP y numero de puerto del cliente */
 	/* addr_len contendra el taman~o de la estructura sockadd_in y numbytes el
@@ -57,12 +61,12 @@ int main(int argc, char *argv[]){
 	int capacidad = 200;
 
 
+
 	if (argc != 7) {
         fprintf(stderr,"ERROR, cantidad invalida de argumentos\n");
         fprintf(stderr,"La invocacion correcta es:\n./sem_svr -l <puerto_sem_svr> -i <bitácora_entrada> -o <bitácora_salida>\n");
         exit(1);
     }
-
     if ((strcmp(argv[1],"-l")!=0) &&
 	    (strcmp(argv[1],"-i")!=0) &&
 	    (strcmp(argv[1],"-o")!=0)) {
@@ -70,7 +74,6 @@ int main(int argc, char *argv[]){
 	    fprintf(stderr,"ERROR, flag invalido.\nEl primer flag puede tener las siguientes opciones:\n-l\n-i\n-o\n");
 	    exit(1);
     }
-
     if ((strcmp(argv[3],"-l")!=0) &&
 	    (strcmp(argv[3],"-i")!=0) &&
 	    (strcmp(argv[3],"-o")!=0)) {
@@ -78,7 +81,6 @@ int main(int argc, char *argv[]){
 	    fprintf(stderr,"ERROR, flag invalido.\nEl segundo flag puede tener las siguientes opciones:\n-l\n-i\n-o\n");
 	    exit(1);
     }
-
     if ((strcmp(argv[5],"-l")!=0) &&
 	    (strcmp(argv[5],"-i")!=0) &&
 	    (strcmp(argv[5],"-o")!=0)) {
@@ -88,7 +90,7 @@ int main(int argc, char *argv[]){
     }
 
 
-    //COMPARACION 1111111
+    // Verificacion informacion primer flag
     if (strcmp(argv[1],"-l")==0){
             if (!sscanf( argv[2], "%d", &num_puerto)){
 				fprintf(stderr, "ERROR, puerto invalido.\n");
@@ -102,25 +104,15 @@ int main(int argc, char *argv[]){
             }
     }
     if (strcmp(argv[1],"-i")==0){
-            bitacora_entrada = argv[6];
-            fp_entrada = fopen(bitacora_entrada,"w+");
-            if (!(fp_entrada)){
-   				fprintf(stderr,"ERROR, el archivo de entrada no se abrió correctamente\n");
-   			}
-   			fprintf(fp_entrada,"Bitácora de entrada\n");
+            bitacora_entrada = argv[2];
     }
 
     if (strcmp(argv[1],"-o")==0){
-            bitacora_salida = argv[6];
-            fp_salida = fopen(bitacora_salida,"w+");
-            if (!(fp_salida)){
-   				fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
-   			}
-   			fprintf(fp_salida,"Bitácora de salida\n");
+            bitacora_salida = argv[2];
     }
 
 
-    //COMPARACION 33333333
+    // Verificacion informacion tercer flag
     if (strcmp(argv[3],"-l")==0){
             if (!sscanf( argv[4], "%d", &num_puerto)){
 				fprintf(stderr, "ERROR, puerto invalido.\n");
@@ -135,24 +127,15 @@ int main(int argc, char *argv[]){
     }
     if (strcmp(argv[3],"-i")==0){
             bitacora_entrada = argv[4];
-            fp_entrada = fopen(bitacora_entrada,"w+");
-            if (!(fp_entrada)){
-   				fprintf(stderr,"ERROR, el archivo de entrada no se abrió correctamente\n");
-   			}
-   			fprintf(fp_entrada,"Bitácora de entrada\n");
+
     }
 
     if (strcmp(argv[3],"-o")==0){
             bitacora_salida = argv[4];
-            fp_salida = fopen(bitacora_salida,"w+");
-            if (!(fp_salida)){
-   				fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
-   			}
-   			fprintf(fp_salida,"Bitácora de salida\n");
     }
 
 
-    // COMPARACIÓN 555555555555
+    // Verificacion informacion quinto flag
     if (strcmp(argv[5],"-l")==0){
             if (!sscanf( argv[6], "%d", &num_puerto)){
 				fprintf(stderr, "ERROR, puerto invalido.\n");
@@ -167,23 +150,17 @@ int main(int argc, char *argv[]){
     }
     if (strcmp(argv[5],"-i")==0){
             bitacora_entrada = argv[6];
-            fp_entrada = fopen(bitacora_entrada,"w+");
-            if (!(fp_entrada)){
-   				fprintf(stderr,"ERROR, el archivo de entrada no se abrió correctamente\n");
-   			}
-   			fprintf(fp_entrada,"Bitácora de entrada\n");
     }
 
     if (strcmp(argv[5],"-o")==0){
             bitacora_salida = argv[6];
-            fp_salida = fopen(bitacora_salida,"w+");
-            if (!(fp_salida)){
-   				fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
-   			}
-   			fprintf(fp_salida,"Bitácora de salida\n");
+
+    }   	
+
+    if (strcmp(bitacora_entrada,bitacora_salida)==0){
+    	printf("ERROR, el nombre del archivo de bitacora de entrada debe ser diferente al de salida.\n");
+    	exit(1);
     }
-
-
 
 	/* se crea el socket */
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
@@ -257,24 +234,25 @@ int main(int argc, char *argv[]){
 
 				else{
 					capacidad--;
+					int posicion;
 					time_t inicio = time(NULL);
 		    		struct tm *tmp = localtime(&inicio);
 
-		    		dia_incio = tmp->tm_mday;
-		    		mes_inicio = tmp->tm_mon + 1;
-		    		ano_inicio = tmp->tm_year + 1900;
-		    		h_inicio = tmp->tm_hour;
-		    		m_inicio = tmp->tm_min;
-		    		s_inicio = tmp->tm_sec;
+		    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
+		    		estacionar_vehiculo (ticket_entrada,placa_vehiculo,inicio);
 
-		    		estacionar_vehiculo (placa_vehiculo,inicio);
+		    		fp_entrada = fopen(bitacora_entrada,"a");
+			        if (!(fp_entrada)){
+						fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
+			   		}
+			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO 				PLACA VEHICULO 				CÓDIGO VEHÍCULO\n");
+		    		fprintf(fp_entrada,"%s 				%s 				%lu\n",
+		    			ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
 
-
+		    		fclose(fp_entrada);
 
 		    		memset(buf_salida, 0, sizeof(buf_salida));
-		    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
 		    		strcpy(buf_salida, ticket_entrada);
-
 		    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 					sizeof(struct sockaddr))) == -1) {
 						perror("sendto");
@@ -303,16 +281,29 @@ int main(int argc, char *argv[]){
 		else{
 			// Verificacion de placa valida
 			if (verificar_placa(placa_vehiculo) == 1){
-				int tarifa_total,posicion;
+				int tarifa_total,p;
 				capacidad++;
 
 		    	time_t fin = time(NULL);
 		    	struct tm *tmp = localtime(&fin);
 
+		    	strftime(ticket_salida, sizeof(ticket_salida), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
+
 		    	// Calculo de tarifa 
 		    	tarifa_total = salida_vehiculo(placa_vehiculo,fin);
+		    	p = posicion_vehiculo(placa_vehiculo);
 
-		    	memset(buf_salida, 0, sizeof(buf_salida));
+		    	fp_salida = fopen(bitacora_salida,"a");
+		        if (!(fp_salida)){
+					fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
+		   		}
+		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO 				FECHA Y HORA DE SALIDA				PLACA VEHÍCULO 				CÓDIGO VEHÍCULO				MONTO A CANCELAR\n");
+		    	fprintf(fp_salida,"%s				%s				%s				%lu				%d\n",
+		    		veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
+
+		    	fclose(fp_salida);
+
+	    		memset(buf_salida, 0, sizeof(buf_salida));
 		    	sprintf(buf_salida,"La tarifa total a pagar es %d",tarifa_total);
 				// Se envia la informacion al cliente
         		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
@@ -400,17 +391,12 @@ int salida_vehiculo(char *placa, time_t salida){
 
 
 unsigned long generador_ids(int id){
-		struct timeval t;
-        unsigned long identificador_vehiculo;
-        gettimeofday(&t,NULL);
-        identificador_vehiculo = ((t.tv_sec * 1000 * 1000) + (t.tv_usec * 1000))<< 42;
-        identificador_vehiculo |= (id % 16777216) << 24;
-        return identificador_vehiculo;
+        return id + 194782658928;
 
 }
 
 
-void estacionar_vehiculo(char *placa, time_t entrada){
+void estacionar_vehiculo(char* ticket, char *placa, time_t entrada){
 	int i;
 
 	for(i=0;i<MAX_VEHICULOS;i++){
@@ -422,6 +408,7 @@ void estacionar_vehiculo(char *placa, time_t entrada){
 			veh_estacionados[i].identificador = generador_ids(i);
 			veh_estacionados[i].entrada = entrada;
 			veh_estacionados[i].activo = 1;
+			strcpy(veh_estacionados[i].ticket_entrada,ticket);
 			fprintf(stderr,"SE GUARDO UN CARRO EN LA POSICION %d\n",i);
 			i=MAX_VEHICULOS;
 		}
