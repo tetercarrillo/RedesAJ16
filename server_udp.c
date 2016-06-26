@@ -15,13 +15,58 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <pthread.h>
+#include <time.h>
+#include <sys/time.h>
 #define SERVER_PORT 4321
 #define BUFFER_LEN 1024
+#define VEN (-4.5)
+
+typedef struct vehiculo{
+	char *placa_vehiculo;
+	int segundos_entrada;
+	unsigned long identificador;
+} vehiculos;
+
+int tarifa (time_t inicio, time_t salida){
+	double segundos_totales;
+	int minutos,fraccion,fraccion_aux,total;
+	segundos_totales = difftime(inicio, salida);
+	minutos = segundos_totales/60;
+
+	if (minutos>60){
+		minutos = minutos - 60;
+		fraccion = minutos/60;
+		fraccion_aux = minutos%60;
+		if (fraccion_aux>0){
+			minutos = fraccion + 1;
+		}
+		else{
+			minutos = fraccion;
+		}
+
+		total = 80 + (minutos*30);
+	}
+
+	else{
+		total = 80;
+	}
+
+	return total;
+}
+
+unsigned long generador_ids(int id){
+		struct timeval t;
+        unsigned long identificador_vehiculo;
+        gettimeofday(&t,NULL);
+        identificador_vehiculo = ((t.tv_sec * 1000 * 1000) + (t.tv_usec * 1000))<< 42;
+        identificador_vehiculo |= (id % 16777216) << 24;
+        return identificador_vehiculo;
+
+}
 
 
 int main(int argc, char *argv[]){
 	char buf_salida[255] = "";
-	sprintf(buf_salida,"%s","Bien y tu");	
 	int sockfd; /* descriptor para el socket */
 	struct sockaddr_in my_addr; /* direccion IP y numero de puerto local */
 	struct sockaddr_in their_addr; /* direccion IP y numero de puerto del cliente */
@@ -32,6 +77,10 @@ int main(int argc, char *argv[]){
 	int num_puerto;
 	char *bitacora_entrada, *bitacora_salida;
 	FILE *fp_entrada, *fp_salida;
+	int rep_l,rep_o,rep_i;
+	rep_i =0;
+	rep_o = 0;
+	rep_l = 0;
 
 
 	if (argc != 7) {
@@ -180,12 +229,15 @@ int main(int argc, char *argv[]){
 		perror("bind");
 		exit(2);
 	}
+	vehiculos veh_estacionados[200];
+	memset(veh_estacionados, 0, sizeof(veh_estacionados));
+
 	while (1){
 		/* Se reciben los datos (directamente, UDP no necesita conexión) */
+		int dia_incio, mes_inicio, ano_inicio, h_inicio, m_inicio, s_inicio,tarifa_total;
 		addr_len = sizeof(struct sockaddr);
 		printf("Esperando datos ....\n");
 
-		
 		if ((numbytes=recvfrom(sockfd, buf, BUFFER_LEN, 0, (struct sockaddr *)&their_addr,
 			(socklen_t *)&addr_len)) == -1) {
 			perror("recvfrom");
@@ -193,10 +245,60 @@ int main(int argc, char *argv[]){
 		}
 
 		/* Se visualiza lo recibido */
-		printf("paquete proveniente de : %s\n",inet_ntoa(their_addr.sin_addr));
-		printf("longitud del paquete en bytes: %d\n",numbytes);
+		char *ptr;
+		int opcion;
+		char *placa_vehiculo;
+
 		buf[numbytes] = '\0';
-		printf("el paquete contiene: %s\n", buf);
+		ptr = strtok(buf, " ");
+
+		/* Obtengo si el vehiculo desea salir o entrar*/
+		opcion = atoi(ptr);
+
+		while(ptr != NULL){
+			/* Obtengo la placa del vehiculo */
+			placa_vehiculo = ptr;
+			ptr = strtok(NULL, " ");
+		}
+	
+
+		/* Se visualiza lo recibido */
+		//printf("paquete proveniente de : %s\n",inet_ntoa(their_addr.sin_addr));
+		//printf("longitud del paquete en bytes: %d\n",numbytes);
+		if (opcion == 1){
+			printf("EL VEHICULO DESEA ENTRAR\n");
+			printf("LA PLACA DEL VEHICULA ES %s",placa_vehiculo);
+		}
+
+		else{
+			printf("EL VEHICULO DESEA SALIR\n");
+			printf("LA PLACA DEL VEHICULA ES %s",placa_vehiculo);
+
+
+		}
+		/////// IF LA OPCION DE BUFFER ES ENTRADAAAAAAAAAAAA
+		time_t inicio = time(NULL);
+        struct tm *tmp = localtime(&inicio);
+
+		// PARA IMPRIMIR EN EL TICKET
+        dia_incio = tmp->tm_mday;
+        mes_inicio = tmp->tm_mon + 1;
+        ano_inicio = tmp->tm_year;
+        h_inicio = tmp->tm_hour;
+        m_inicio = tmp->tm_min;
+        s_inicio = tmp->tm_sec;
+
+        sprintf(buf_salida,"Fecha: %d/%d/%d \n Hora: %d:%d:%d",dia_incio,mes_inicio,ano_inicio,h_inicio,m_inicio,s_inicio);	
+
+
+
+
+        //////////// IF LA OPCION ES DE SALIDAAAAAA
+        //time_t salida =time(NULL);
+        //tarifa_total = tarifa(inicio,salida); 
+
+
+
 		/* cerramos descriptor del socket */
 		//close(sockfd);
 		//exit (0);
@@ -205,7 +307,8 @@ int main(int argc, char *argv[]){
 				perror("sendto");
 				exit(2);
 		}
-		printf("enviados %d bytes hacia %s\n",numbytes,inet_ntoa(their_addr.sin_addr));
 	}
 }
+
+
 

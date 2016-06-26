@@ -236,18 +236,16 @@ int main(int argc, char *argv[]){
     }
 
 
-
-
-
-
-
 	/* Creamos el socket */
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
 		perror("socket");
 		exit(2);
 	}
 
-	sprintf(buffer,"%s %s %s",argv[6]," ",argv[8]);
+	// ANADIMOS EN EL BUFFER LA INFORMACION RESPECTO A LA ENTRADA O SALIDA DEL VEHICULO Y SU PLACA
+	sprintf(buffer,"%d %s %s",opcion," ",id_vehiculo);
+
+
 	/* a donde mandar */
 	their_addr.sin_family = AF_INET; /* usa host byte order */
 	their_addr.sin_port = htons(SERVER_PORT); /* usa network byte order */
