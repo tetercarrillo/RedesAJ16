@@ -1,1 +1,0 @@
-Bitácora de entrada

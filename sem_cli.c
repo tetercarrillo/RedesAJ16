@@ -258,7 +258,6 @@ int main(int argc, char *argv[]){
 		perror("sendto");
 		exit(2);
 	}
-	printf("enviados %d bytes hacia %s\n",numbytes,inet_ntoa(their_addr.sin_addr));
 
 
 	while(1){
@@ -267,11 +266,9 @@ int main(int argc, char *argv[]){
 			exit(3);
 		}
 
-		/* Se visualiza lo recibido */
-		printf("paquete proveniente de : %s\n",inet_ntoa(their_addr.sin_addr));
-		printf("longitud del paquete en bytes: %d\n",numbytes);
+
 		buf_entrada[numbytes] = '\0';
-		printf("el paquete contiene: %s\n", buf_entrada);
+		printf("LA INFORMACION DEL ESTACIOAMIENTO ES: %s\n", buf_entrada);
 
 		    fgets(s, sizeof(s), stdin);
 		    sprintf(buf, "%s", s);

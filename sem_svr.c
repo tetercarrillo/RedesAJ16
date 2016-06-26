@@ -19,13 +19,44 @@
 #include <sys/time.h>
 #define SERVER_PORT 4321
 #define BUFFER_LEN 1024
-#define VEN (-4.5)
+#define MAX_VEHICULOS 200
+
 
 typedef struct vehiculo{
+	int activo;
 	char *placa_vehiculo;
-	int segundos_entrada;
+	time_t entrada;
 	unsigned long identificador;
 } vehiculos;
+
+vehiculos veh_estacionados[200];
+
+int verificar_placa(char *placa){
+	int i = 0;
+
+	for(i=0; i<MAX_VEHICULOS; i++){
+
+		if ((veh_estacionados[i].activo == 1) && (strcmp(veh_estacionados[i].placa_vehiculo,placa)==0)){
+			fprintf(stderr,"LA PLACA EN LA POSICION %d ES LA SIGUIENTE %s\n",i,veh_estacionados[i].placa_vehiculo);
+			fprintf(stderr,"ESTOY VERIFCICANDO -------> ESTOY EN LA POSICION %d Y MI PLACA ES %s\n",i,placa);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int posicion_vehiculo(char *placa){
+	int i = 0;
+
+	for(i=0; i<MAX_VEHICULOS; i++){
+
+		if (strcmp(veh_estacionados[i].placa_vehiculo,placa)==0){
+			return i;
+		}
+	}
+	return -100;
+}
+
 
 int tarifa (time_t inicio, time_t salida){
 	double segundos_totales;
@@ -67,6 +98,7 @@ unsigned long generador_ids(int id){
 
 int main(int argc, char *argv[]){
 	char buf_salida[255] = "";
+	char ticket_entrada[50]="";
 	int sockfd; /* descriptor para el socket */
 	struct sockaddr_in my_addr; /* direccion IP y numero de puerto local */
 	struct sockaddr_in their_addr; /* direccion IP y numero de puerto del cliente */
@@ -77,10 +109,7 @@ int main(int argc, char *argv[]){
 	int num_puerto;
 	char *bitacora_entrada, *bitacora_salida;
 	FILE *fp_entrada, *fp_salida;
-	int rep_l,rep_o,rep_i;
-	rep_i =0;
-	rep_o = 0;
-	rep_l = 0;
+	int capacidad = 5;
 
 
 	if (argc != 7) {
@@ -229,8 +258,7 @@ int main(int argc, char *argv[]){
 		perror("bind");
 		exit(2);
 	}
-	vehiculos veh_estacionados[200];
-	memset(veh_estacionados, 0, sizeof(veh_estacionados));
+
 
 	while (1){
 		/* Se reciben los datos (directamente, UDP no necesita conexión) */
@@ -260,36 +288,127 @@ int main(int argc, char *argv[]){
 			placa_vehiculo = ptr;
 			ptr = strtok(NULL, " ");
 		}
-	
-
-		/* Se visualiza lo recibido */
-		//printf("paquete proveniente de : %s\n",inet_ntoa(their_addr.sin_addr));
-		//printf("longitud del paquete en bytes: %d\n",numbytes);
+		fprintf(stderr,"LA PLACA DEL VEHICULO QUE ENTRO ES %s\n",placa_vehiculo);
+		fprintf(stderr,"LA PLACA EN LA POSICION 0 ES LA SIGUIENTE %s\n",veh_estacionados[0].placa_vehiculo);
+		// ENTRADA DE UN VEHICULO
 		if (opcion == 1){
-			printf("EL VEHICULO DESEA ENTRAR\n");
-			printf("LA PLACA DEL VEHICULA ES %s",placa_vehiculo);
-		}
+			int i;
+
+			// Se chequea si hay espacio para dejar entrar al vehicula
+			if (capacidad>0){
+				fprintf(stderr,"ESTOY SOLICITANDO ENTRAR AL ESTANCIONAMIENTO, MI PLACA ES %s\n",placa_vehiculo);
+				// Se verifica que no haya un vehiculo con la placa
+				if (verificar_placa(placa_vehiculo) == 1){
+					fprintf(stderr,"MI PLACA ES %s Y YA EXISTE\n",placa_vehiculo);
+					memset(buf_salida, 0, sizeof(buf_salida));
+					sprintf(buf_salida,"ERROR, ya existe un vehiculo con la placa %s estacionado",placa_vehiculo);
+					// Se le notifica al cliente de que no puede ingresar un carro con dicha placa
+        			if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+						sizeof(struct sockaddr))) == -1) {
+						perror("sendto");
+						exit(2);
+					}
+				}
+
+				else{
+					capacidad--;
+					time_t inicio = time(NULL);
+		    		struct tm *tmp = localtime(&inicio);
+
+		    		dia_incio = tmp->tm_mday;
+		    		mes_inicio = tmp->tm_mon + 1;
+		    		ano_inicio = tmp->tm_year + 1900;
+		    		h_inicio = tmp->tm_hour;
+		    		m_inicio = tmp->tm_min;
+		    		s_inicio = tmp->tm_sec;
+
+		    		char *aux;
+		    		aux = placa_vehiculo; 
+		    		for(i=0;i<5;i++){
+
+		    			// Encontrar posición libre del arreglo de vehiculos en el estacionamiento
+		    			if (veh_estacionados[i].activo == 0){
+		    				veh_estacionados[i].placa_vehiculo = aux;
+		    				veh_estacionados[i].identificador = generador_ids(i);
+		    				veh_estacionados[i].entrada = inicio;
+		    				veh_estacionados[i].activo = 1;
+		    				fprintf(stderr,"SE GUARDO UN CARRO EN LA POSICION %d",i);
+
+		    				i=5;
+		    			}
+
+		    		}
+
+		    		memset(buf_salida, 0, sizeof(buf_salida));
+		    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
+		    		strcpy(buf_salida, ticket_entrada);
+
+		    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+					sizeof(struct sockaddr))) == -1) {
+						perror("sendto");
+						exit(2);
+					}//if sendto
+				}// else de placa que no existe en el estacionamiento
+			}// if de que hay capacidad en el estacionamiento
+
+			// No hay capacidad para almacenar el vehiculo
+			else{
+				memset(buf_salida, 0, sizeof(buf_salida));
+				sprintf(buf_salida,"El estacionamiento esta lleno. Por favor espere.");
+				// Se envia la informacion al cliente
+        		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+				sizeof(struct sockaddr))) == -1) {
+					perror("sendto");
+					exit(2);
+				}
+
+			}
+			
+		} // cierre del if de entrada
 
 		else{
-			printf("EL VEHICULO DESEA SALIR\n");
-			printf("LA PLACA DEL VEHICULA ES %s",placa_vehiculo);
+			if (verificar_placa(placa_vehiculo) == 1){
+				int tarifa_total,posicion;
+				capacidad++;
+
+		    	posicion = posicion_vehiculo (placa_vehiculo);
+
+		    	time_t fin = time(NULL);
+		    	struct tm *tmp = localtime(&fin);
+
+		    	tarifa_total = tarifa(veh_estacionados[posicion].entrada,fin);
+
+		    	memset(buf_salida, 0, sizeof(buf_salida));
+		    	sprintf(buf_salida,"La tarifa total a pagar es %d",tarifa_total);
+				// Se envia la informacion al cliente
+        		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+				sizeof(struct sockaddr))) == -1) {
+					perror("sendto");
+					exit(2);
+				}
+
+
+			}
+
+			else{
+
+				memset(buf_salida, 0, sizeof(buf_salida));
+				sprintf(buf_salida,"No existe ningún vehiculo con la placa %s\n",placa_vehiculo);
+				// Se envia la informacion al cliente
+        		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+				sizeof(struct sockaddr))) == -1) {
+					perror("sendto");
+					exit(2);
+				}
+			}
 
 
 		}
 		/////// IF LA OPCION DE BUFFER ES ENTRADAAAAAAAAAAAA
-		time_t inicio = time(NULL);
-        struct tm *tmp = localtime(&inicio);
+		
 
 		// PARA IMPRIMIR EN EL TICKET
-        dia_incio = tmp->tm_mday;
-        mes_inicio = tmp->tm_mon + 1;
-        ano_inicio = tmp->tm_year;
-        h_inicio = tmp->tm_hour;
-        m_inicio = tmp->tm_min;
-        s_inicio = tmp->tm_sec;
-
-        sprintf(buf_salida,"Fecha: %d/%d/%d \n Hora: %d:%d:%d",dia_incio,mes_inicio,ano_inicio,h_inicio,m_inicio,s_inicio);	
-
+  
 
 
 
@@ -302,11 +421,7 @@ int main(int argc, char *argv[]){
 		/* cerramos descriptor del socket */
 		//close(sockfd);
 		//exit (0);
-		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
-			sizeof(struct sockaddr))) == -1) {
-				perror("sendto");
-				exit(2);
-		}
+
 	}
 }
 

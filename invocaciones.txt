@@ -1,4 +1,5 @@
 ./client_udp -d localhost -p 20122 -c e -i 12323424
+lsof -ti:20122 | xargs kill -9
 
 
 ./server_udp -l 20122 -i e.txt -o s.txt
