@@ -241,6 +241,7 @@ int main(int argc, char *argv[]){
 		    		estacionar_vehiculo (ticket_entrada,placa_vehiculo,inicio);
 
 		    		posicion = posicion_vehiculo(placa_vehiculo);
+		    		printf("LA POSICION ES %d\n",i);
 
 
 		    		fp_entrada = fopen(bitacora_entrada,"a");
