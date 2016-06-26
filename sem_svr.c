@@ -45,6 +45,7 @@ int verificar_placa(char *placa);
 
 int main(int argc, char *argv[]){
 	char buf_salida[255] = "";
+	char buf_aux[255] = "";
 	char ticket_entrada[50]="";
 	char ticket_salida[50]="";
 	int sockfd,bit_dia,bit_mes,bit_ano;
@@ -193,6 +194,10 @@ int main(int argc, char *argv[]){
 			perror("recvfrom");
 			exit(3);
 		}
+		char bytes[5];
+		sprintf(bytes, "%d", numbytes);
+		strcat(bytes,"!");
+		fprintf(stderr,"BYTES QUE RECIBI  %s\n",bytes);
 
 		/* Se visualiza lo recibido */
 		char *ptr;
@@ -223,7 +228,9 @@ int main(int argc, char *argv[]){
 				if (verificar_placa(placa_vehiculo) == 1){
 					fprintf(stderr,"MI PLACA ES %s Y YA EXISTE\n",placa_vehiculo);
 					memset(buf_salida, 0, sizeof(buf_salida));
-					sprintf(buf_salida,"ERROR, ya existe un vehiculo con la placa %s estacionado",placa_vehiculo);
+					strcpy(buf_salida,bytes);
+					sprintf(buf_aux,"ERROR, ya existe un vehiculo con la placa %s estacionado",placa_vehiculo);
+					strcat(buf_salida,buf_aux);
 					// Se le notifica al cliente de que no puede ingresar un carro con dicha placa
         			if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 						sizeof(struct sockaddr))) == -1) {
@@ -241,24 +248,21 @@ int main(int argc, char *argv[]){
 		    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
 		    		estacionar_vehiculo (ticket_entrada,placa_vehiculo,inicio);
 
-
+		    		fprintf(stderr, "VOY A ABRIR EL ARCHIVO DE ENTRADAAAAAAAEKJIQJRIWHRIYWIRIR\n");
 		    		fp_entrada = fopen(bitacora_entrada,"a");
-		    		fprintf(stderr, "ABRI EL ARCHIVPOOOOOOPQKKE\n");
 			        if (!(fp_entrada)){
 						fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 			   		}
-   				  	fprintf(stderr, "VERIFIQUE TODO ESTUVIESE BIEN\n");
 			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO 				PLACA VEHICULO 				CÓDIGO VEHÍCULO\n");
 		    		fprintf(fp_entrada,"%s 				%s 				%lu\n",
 		    			ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
 
 		    		fclose(fp_entrada);
-		    		fprintf(stderr, "CERRE EL ARCHIVO\n");
 
 		    		memset(buf_salida, 0, sizeof(buf_salida));
-		    		fprintf(stderr, "LIMPIO EL BUFFER DE SALIDA\n");
-		    		strcpy(buf_salida, ticket_entrada);
-		    		fprintf(stderr, "COPIE EN EL BUFFER DE SALIDA\n");
+		    		strcpy(buf_salida,bytes);
+		    		strcpy(buf_aux, ticket_entrada);
+		    		strcat(buf_salida,buf_aux);
 		    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 					sizeof(struct sockaddr))) == -1) {
 						perror("sendto");
@@ -270,7 +274,9 @@ int main(int argc, char *argv[]){
 			// No hay capacidad para almacenar el vehiculo
 			else{
 				memset(buf_salida, 0, sizeof(buf_salida));
-				sprintf(buf_salida,"El estacionamiento esta lleno. Por favor espere.");
+				strcpy(buf_salida,bytes);
+				sprintf(buf_aux,"El estacionamiento esta lleno. Por favor espere.");
+				strcat(buf_salida,buf_aux);
 				// Se envia la informacion al cliente
         		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 				sizeof(struct sockaddr))) == -1) {
@@ -310,7 +316,9 @@ int main(int argc, char *argv[]){
 		    	fclose(fp_salida);
 
 	    		memset(buf_salida, 0, sizeof(buf_salida));
-		    	sprintf(buf_salida,"La tarifa total a pagar es %d",tarifa_total);
+	    		strcpy(buf_salida,bytes);
+		    	sprintf(buf_aux,"La tarifa total a pagar es %d",tarifa_total);
+		    	strcat(buf_salida,buf_aux);
 				// Se envia la informacion al cliente
         		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 				sizeof(struct sockaddr))) == -1) {
@@ -325,7 +333,9 @@ int main(int argc, char *argv[]){
 			else{
 
 				memset(buf_salida, 0, sizeof(buf_salida));
-				sprintf(buf_salida,"No existe ningún vehiculo con la placa %s\n",placa_vehiculo);
+				strcpy(buf_salida,bytes);
+				sprintf(buf_aux,"No existe ningún vehiculo con la placa %s\n",placa_vehiculo);
+				strcat(buf_salida,buf_aux);
 				// Se envia la informacion al cliente
         		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 				sizeof(struct sockaddr))) == -1) {
@@ -435,5 +445,4 @@ int verificar_placa(char *placa){
 	}
 	return 0;
 }
-
 

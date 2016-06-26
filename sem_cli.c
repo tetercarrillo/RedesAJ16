@@ -5,8 +5,7 @@
 * Basado en diversos ejemplos públicos.
 *
 */
-
-
+#include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -28,7 +27,9 @@ int main(int argc, char *argv[]){
 	char buf_entrada[BUFFER_LEN];	
 	char s[100];
 	int num_puerto;
-	int opcion;
+    int numbytes_send;
+    struct timeval timeout;
+	int opcion,i;
 	char *id_vehiculo;
 	char buffer[BUFFER_LEN];
 
@@ -242,6 +243,18 @@ int main(int argc, char *argv[]){
 		exit(2);
 	}
 
+    timeout.tv_sec = 4;
+    timeout.tv_usec = 0;
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+        error("Fallo asignando tiempo de espera para el Socket.\n");
+        exit(1);
+    }
+    if (setsockopt (sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0){
+        error("setsockopt failed\n");
+    }
+    
+
 	// ANADIMOS EN EL BUFFER LA INFORMACION RESPECTO A LA ENTRADA O SALIDA DEL VEHICULO Y SU PLACA
 	sprintf(buffer,"%d %s %s",opcion," ",id_vehiculo);
 
@@ -252,33 +265,66 @@ int main(int argc, char *argv[]){
 	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
 	bzero(&(their_addr.sin_zero), 8); /* pone en cero el resto */
 	/* enviamos el mensaje */
-	if
-		((numbytes=sendto(sockfd,buffer,strlen(buffer),0,(struct sockaddr*) & their_addr,
-		sizeof(struct sockaddr))) == -1) {
-		perror("sendto");
-		exit(2);
-	}
 
 
-	while(1){
+
+	for(i = 0; i < 3; i++){
+
+        if((numbytes_send=sendto(sockfd,buffer,strlen(buffer),0,(struct sockaddr*) & their_addr, sizeof(struct sockaddr))) == -1) {
+        perror("ERROR: No se pudo enviar el mensaje al servidor");
+        exit(2);
+        }
 		if ((numbytes=recvfrom(sockfd, buf_entrada, BUFFER_LEN, 0, (struct sockaddr *)&their_addr, (socklen_t *)&addr_len)) == -1) {
-			perror("recvfrom");
-			exit(3);
-		}
+            fprintf(stderr, "%s\n", "ERROR: Tiempo de espera agotado. El servidor no responde.");
+            exit(3);
+        }
 
+        char *ptr;
+        int bytes_recv;
+        char mensaje[100];
+        char buf_aux[10];
+        strcpy(buf_aux, buf_entrada);
 
-		buf_entrada[numbytes] = '\0';
-		printf("LA INFORMACION DEL ESTACIOAMIENTO ES: %s\n", buf_entrada);
+        buf_aux[numbytes] = '\0';
+        buf_entrada[numbytes] = '\0';
+        ptr = strtok(buf_aux, "!");
 
-		    fgets(s, sizeof(s), stdin);
-		    sprintf(buf, "%s", s);
+        /* Obtengo si el vehiculo desea salir o entrar*/
+        bytes_recv = atoi(ptr);
+
+        while(ptr != NULL){
+            /* Obtengo la placa del vehiculo */
+            strcpy(mensaje,ptr);
+            ptr = strtok(NULL, "!");
+        }
+        
+        
+        if ((bytes_recv) = numbytes_send){
+            printf("Los datos enviados al servidor se enviaron correctamente.\n");
+            printf("LA INFORMACION DEL ESTACIOAMIENTO ES: %s\n", mensaje);
+            exit(1);
+        }
+        else if ((bytes_recv) < numbytes_send){
+            i = 0;
+            printf("Se ha perdido información durante el envío. Intente de nuevo.\n");
+        }
+        else{
+            i = 0;
+            printf("Se ha encontrado información duplicada en el elvío de los datos. Intente de nuevo.\n");
+        }
+
+        if (i == 2) {
+            close(sockfd); // cerramos el socket
+            printf("Se ha superado el número de intentos.\n");
+            exit(1);
+        }
+        else {
+            printf("El servidor no responde. Intente nuevamente.\n");
+        }
+
 		    
-		    if ((sendto(sockfd,buf,strlen(buf),0,(struct sockaddr *)&their_addr, sizeof(struct sockaddr))) == -1) {
-		      perror("sendto");
-		      exit(2);
-		    }
-}
-/* cierro socket */
-//close(sockfd);
-//exit (0);
+    }
+    /* cierro socket */
+    close(sockfd);
+    exit (0);
 }
