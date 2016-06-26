@@ -253,11 +253,8 @@ int main(int argc, char *argv[]){
 			        if (!(fp_entrada)){
 						fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 			   		}
-			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO: %s  PLACA VEHÍCULO: %s 	CÓDIGO VEHÍCULO: %d	\n",
-		   			veh_estacionados[posicion].ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
 
-			   		fprintf(stderr, "ESCRIBI EN EL BUFFER\n");
-			   		fprintf(stderr,"FECHA Y HORA DE INGRESO: %s  PLACA VEHÍCULO: %s  CÓDIGO VEHÍCULO: %d	\n",
+			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO: %s  PLACA VEHICULO: %s CODIGO VEHÍCULO: %d	\n",
 		   			veh_estacionados[posicion].ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
 		    		fclose(fp_entrada);
 
@@ -265,7 +262,6 @@ int main(int argc, char *argv[]){
 		    		strcpy(buf_salida,bytes);
 		    		strcpy(buf_aux, ticket_entrada);
 		    		strcat(buf_salida,buf_aux);
-		    		fprintf(stderr, "VOY A MANDAR LA INFORMACION\n");
 		    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 					sizeof(struct sockaddr))) == -1) {
 						perror("sendto");
@@ -315,13 +311,14 @@ int main(int argc, char *argv[]){
 		        if (!(fp_salida)){
 					fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 		   		}
-		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO: %s 	FECHA Y HORA DE SALIDA: %s	PLACA VEHÍCULO: %s 	CÓDIGO VEHÍCULO: %d	 MONTO A CANCELAR: %d\n",
+		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO: %s 	FECHA Y HORA DE SALIDA: %s	PLACA VEHICULO: %s 	CODIGO VEHÍCULO: %d	 MONTO A CANCELAR: %d\n",
 		   			veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
 
 		    	fclose(fp_salida);
 
 	    		memset(buf_salida, 0, sizeof(buf_salida));
 	    		strcpy(buf_salida,bytes);
+	    		memset(buf_aux, 0, sizeof(buf_aux));
 		    	sprintf(buf_aux,"La tarifa total a pagar es %d",tarifa_total);
 		    	strcat(buf_salida,buf_aux);
 				// Se envia la informacion al cliente

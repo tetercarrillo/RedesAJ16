@@ -304,7 +304,7 @@ int main(int argc, char *argv[]){
         
         if (bytes_recv == numbytes_send){
             printf("Los datos enviados al servidor se enviaron correctamente.\n");
-            printf("LA INFORMACION DEL ESTACIOAMIENTO ES: %s\n", mensaje);
+            printf("LA INFORMACION DEL ESTACIONAMIENTO ES: %s\n", mensaje);
             break;
         }
         else if (bytes_recv < numbytes_send){
