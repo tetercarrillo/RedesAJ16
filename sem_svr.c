@@ -24,7 +24,7 @@
 
 typedef struct vehiculo{
 	int activo;
-	char *placa_vehiculo;
+	char placa_vehiculo[10];
 	time_t entrada;
 	unsigned long identificador;
 } vehiculos;
@@ -275,7 +275,7 @@ int main(int argc, char *argv[]){
 		/* Se visualiza lo recibido */
 		char *ptr;
 		int opcion;
-		char *placa_vehiculo;
+		char placa_vehiculo[10];
 
 		buf[numbytes] = '\0';
 		ptr = strtok(buf, " ");
@@ -285,7 +285,7 @@ int main(int argc, char *argv[]){
 
 		while(ptr != NULL){
 			/* Obtengo la placa del vehiculo */
-			placa_vehiculo = ptr;
+			strcpy(placa_vehiculo,ptr);
 			ptr = strtok(NULL, " ");
 		}
 		fprintf(stderr,"LA PLACA DEL VEHICULO QUE ENTRO ES %s\n",placa_vehiculo);
@@ -322,17 +322,17 @@ int main(int argc, char *argv[]){
 		    		m_inicio = tmp->tm_min;
 		    		s_inicio = tmp->tm_sec;
 
-		    		char *aux;
-		    		aux = placa_vehiculo; 
+		    		char aux[10];
+		    		strcpy(aux,placa_vehiculo); 
 		    		for(i=0;i<5;i++){
 
 		    			// Encontrar posición libre del arreglo de vehiculos en el estacionamiento
 		    			if (veh_estacionados[i].activo == 0){
-		    				veh_estacionados[i].placa_vehiculo = aux;
+		    				strcpy(veh_estacionados[i].placa_vehiculo,aux);
 		    				veh_estacionados[i].identificador = generador_ids(i);
 		    				veh_estacionados[i].entrada = inicio;
 		    				veh_estacionados[i].activo = 1;
-		    				fprintf(stderr,"SE GUARDO UN CARRO EN LA POSICION %d",i);
+		    				fprintf(stderr,"SE GUARDO UN CARRO EN LA POSICION %d\n",i);
 
 		    				i=5;
 		    			}
@@ -424,6 +424,5 @@ int main(int argc, char *argv[]){
 
 	}
 }
-
 
 
