@@ -240,6 +240,8 @@ int main(int argc, char *argv[]){
 		    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
 		    		estacionar_vehiculo (ticket_entrada,placa_vehiculo,inicio);
 
+		    		posicion = posicion_vehiculo(placa_vehiculo);
+
 
 		    		fp_entrada = fopen(bitacora_entrada,"a");
 		    		fprintf(stderr, "ABRI EL ARCHIVPOOOOOOPQKKE\n");
