@@ -304,8 +304,8 @@ int main(int argc, char *argv[]){
 					fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 		   		}
 		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO 				FECHA Y HORA DE SALIDA				PLACA VEHÍCULO 				CÓDIGO VEHÍCULO				MONTO A CANCELAR\n");
-		    	fprintf(fp_salida,"%s				%s				%s				%lu				%d\n",
-		    		veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
+		    	fprintf(fp_salida,"%s				\n",
+		    		veh_estacionados[p].ticket_entrada);
 
 		    	fclose(fp_salida);
 
