@@ -216,7 +216,6 @@ int main(int argc, char *argv[]){
 			ptr = strtok(NULL, " ");
 		}
 		fprintf(stderr,"LA PLACA DEL VEHICULO QUE ENTRO ES %s\n",placa_vehiculo);
-		fprintf(stderr,"LA PLACA EN LA POSICION 0 ES LA SIGUIENTE %s\n",veh_estacionados[0].placa_vehiculo);
 		// ENTRADA DE UN VEHICULO
 		if (opcion == 1){
 			int i;
@@ -254,10 +253,12 @@ int main(int argc, char *argv[]){
 			        if (!(fp_entrada)){
 						fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 			   		}
-			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO 				PLACA VEHICULO 				CÓDIGO VEHÍCULO\n");
-		    		fprintf(fp_entrada,"%s 				%s 				%d\n",
-		    			ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
+			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO: %s  PLACA VEHÍCULO: %s 	CÓDIGO VEHÍCULO: %d	\n",
+		   			veh_estacionados[posicion].ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
 
+			   		fprintf(stderr, "ESCRIBI EN EL BUFFER\n");
+			   		fprintf(stderr,"FECHA Y HORA DE INGRESO: %s  PLACA VEHÍCULO: %s  CÓDIGO VEHÍCULO: %d	\n",
+		   			veh_estacionados[posicion].ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
 		    		fclose(fp_entrada);
 
 		    		memset(buf_salida, 0, sizeof(buf_salida));
@@ -298,22 +299,24 @@ int main(int argc, char *argv[]){
 				int tarifa_total,p;
 				capacidad++;
 
+				fprintf(stderr,"ESTOY TRATANDO DE SALIR MI PLACA ES %s",placa_vehiculo);
 		    	time_t fin = time(NULL);
 		    	struct tm *tmp = localtime(&fin);
 
 		    	strftime(ticket_salida, sizeof(ticket_salida), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
 
 		    	// Calculo de tarifa 
-		    	tarifa_total = salida_vehiculo(placa_vehiculo,fin);
-		    	p = posicion_vehiculo(placa_vehiculo);
+	    		p = posicion_vehiculo(placa_vehiculo);
+	    		fprintf(stderr,"ESTOY TRATANDO DE SALIR MI IDENTIFICADOR ES %d",veh_estacionados[p].identificador);
+	    		tarifa_total = salida_vehiculo(placa_vehiculo,fin);
+
 
 		    	fp_salida = fopen(bitacora_salida,"a");
 		        if (!(fp_salida)){
 					fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 		   		}
-		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO 				FECHA Y HORA DE SALIDA				PLACA VEHÍCULO 				CÓDIGO VEHÍCULO				MONTO A CANCELAR\n");
-		    	fprintf(fp_salida,"%s				%s				%s				%d				%d\n",
-		    		veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
+		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO: %s 	FECHA Y HORA DE SALIDA: %s	PLACA VEHÍCULO: %s 	CÓDIGO VEHÍCULO: %d	 MONTO A CANCELAR: %d\n",
+		   			veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
 
 		    	fclose(fp_salida);
 
@@ -396,8 +399,8 @@ int posicion_vehiculo(char *placa){
 
 int salida_vehiculo(char *placa, time_t salida){
 	int posicion,tarifa_v;
-
 	posicion = posicion_vehiculo(placa);
+	fprintf(stderr,"VOY A SALIR , ESTOY EN SALIDA VEHICULO, MI PLACA ES %s Y ESTOY EN LA POSICION %d",placa,posicion);
 	tarifa_v = tarifa (veh_estacionados[posicion].entrada,salida);
 	// Se procede a liberar la informacion correspondiente al puesto
 	veh_estacionados[posicion].activo = 0;
