@@ -27,7 +27,7 @@ typedef struct vehiculo{
 	int activo;
 	char placa_vehiculo[10];
 	time_t entrada;
-	unsigned long identificador;
+	int identificador;
 	char ticket_entrada[50];
 } vehiculos;
 
@@ -249,8 +249,8 @@ int main(int argc, char *argv[]){
 			   		}
    				  	fprintf(stderr, "VERIFIQUE TODO ESTUVIESE BIEN\n");
 			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO 				PLACA VEHICULO 				CÓDIGO VEHÍCULO\n");
-		    		fprintf(fp_entrada,"%s 				%s 				\n",
-		    			ticket_entrada,placa_vehiculo);
+		    		fprintf(fp_entrada,"%s 				%s 				%d\n",
+		    			ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
 
 		    		fclose(fp_entrada);
 		    		fprintf(stderr, "CERRE EL ARCHIVO\n");
@@ -304,7 +304,7 @@ int main(int argc, char *argv[]){
 					fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 		   		}
 		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO 				FECHA Y HORA DE SALIDA				PLACA VEHÍCULO 				CÓDIGO VEHÍCULO				MONTO A CANCELAR\n");
-		    	fprintf(fp_salida,"%s				%s				%s				%lu				%d\n",
+		    	fprintf(fp_salida,"%s				%s				%s				%d				%d\n",
 		    		veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
 
 		    	fclose(fp_salida);
@@ -396,8 +396,8 @@ int salida_vehiculo(char *placa, time_t salida){
 }
 
 
-unsigned long generador_ids(int id){
-        return id + 194782658928;
+int generador_ids(int id){
+        return id + 1234;
 
 }
 
