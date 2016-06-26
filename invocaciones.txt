@@ -1,4 +1,0 @@
-./sem_cli -d localhost -p 20122 -c e -i 12323424
-
-
-./sem_svr -l 20122 -i e.txt -o s.txt

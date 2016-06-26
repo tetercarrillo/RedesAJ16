@@ -37,7 +37,6 @@ vehiculos veh_estacionados[200];
 int tarifa (time_t inicio, time_t salida);
 int posicion_vehiculo(char *placa);
 int salida_vehiculo(char *placa, time_t salida);
-int generador_ids(int id);
 void estacionar_vehiculo(char* ticket, char *placa, time_t entrada);
 int verificar_placa(char *placa);
 
@@ -396,11 +395,6 @@ int salida_vehiculo(char *placa, time_t salida){
 }
 
 
-int generador_ids(int id){
-        return id + 1234;
-
-}
-
 
 void estacionar_vehiculo(char* ticket, char *placa, time_t entrada){
 	int i;
@@ -411,7 +405,7 @@ void estacionar_vehiculo(char* ticket, char *placa, time_t entrada){
 		if (veh_estacionados[i].activo == 0){
 
 			strcpy(veh_estacionados[i].placa_vehiculo,placa);
-			veh_estacionados[i].identificador = generador_ids(i);
+			veh_estacionados[i].identificador = i;
 			veh_estacionados[i].entrada = entrada;
 			veh_estacionados[i].activo = 1;
 			strcpy(veh_estacionados[i].ticket_entrada,ticket);

@@ -247,11 +247,11 @@ int main(int argc, char *argv[]){
     timeout.tv_usec = 0;
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
-        error("Fallo asignando tiempo de espera para el Socket.\n");
+        perror("Fallo asignando tiempo de espera para el Socket.\n");
         exit(1);
     }
     if (setsockopt (sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0){
-        error("setsockopt failed\n");
+        perror("setsockopt failed\n");
     }
     
 
@@ -299,12 +299,12 @@ int main(int argc, char *argv[]){
         }
         
         
-        if ((bytes_recv) = numbytes_send){
+        if (bytes_recv == numbytes_send){
             printf("Los datos enviados al servidor se enviaron correctamente.\n");
             printf("LA INFORMACION DEL ESTACIOAMIENTO ES: %s\n", mensaje);
             exit(1);
         }
-        else if ((bytes_recv) < numbytes_send){
+        else if (bytes_recv < numbytes_send){
             i = 0;
             printf("Se ha perdido información durante el envío. Intente de nuevo.\n");
         }
