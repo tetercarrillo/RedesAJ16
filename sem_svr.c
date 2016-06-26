@@ -31,69 +31,14 @@ typedef struct vehiculo{
 
 vehiculos veh_estacionados[200];
 
-int verificar_placa(char *placa){
-	int i = 0;
 
-	for(i=0; i<MAX_VEHICULOS; i++){
+int tarifa (time_t inicio, time_t salida);
+int posicion_vehiculo(char *placa);
+int salida_vehiculo(char *placa, time_t salida);
+unsigned long generador_ids(int id);
+void estacionar_vehiculo(char *placa, time_t entrada);
+int verificar_placa(char *placa);
 
-		if ((veh_estacionados[i].activo == 1) && (strcmp(veh_estacionados[i].placa_vehiculo,placa)==0)){
-			fprintf(stderr,"LA PLACA EN LA POSICION %d ES LA SIGUIENTE %s\n",i,veh_estacionados[i].placa_vehiculo);
-			fprintf(stderr,"ESTOY VERIFCICANDO -------> ESTOY EN LA POSICION %d Y MI PLACA ES %s\n",i,placa);
-			return 1;
-		}
-	}
-	return 0;
-}
-
-int posicion_vehiculo(char *placa){
-	int i = 0;
-
-	for(i=0; i<MAX_VEHICULOS; i++){
-
-		if (strcmp(veh_estacionados[i].placa_vehiculo,placa)==0){
-			return i;
-		}
-	}
-	return -100;
-}
-
-
-int tarifa (time_t inicio, time_t salida){
-	double segundos_totales;
-	int minutos,fraccion,fraccion_aux,total;
-	segundos_totales = difftime(inicio, salida);
-	minutos = segundos_totales/60;
-
-	if (minutos>60){
-		minutos = minutos - 60;
-		fraccion = minutos/60;
-		fraccion_aux = minutos%60;
-		if (fraccion_aux>0){
-			minutos = fraccion + 1;
-		}
-		else{
-			minutos = fraccion;
-		}
-
-		total = 80 + (minutos*30);
-	}
-
-	else{
-		total = 80;
-	}
-
-	return total;
-}
-
-unsigned long generador_ids(int id){
-		struct timeval t;
-        unsigned long identificador_vehiculo;
-        gettimeofday(&t,NULL);
-        identificador_vehiculo = ((t.tv_sec * 1000 * 1000) + (t.tv_usec * 1000))<< 42;
-        identificador_vehiculo |= (id % 16777216) << 24;
-        return identificador_vehiculo;
-
-}
 
 
 int main(int argc, char *argv[]){
@@ -109,7 +54,7 @@ int main(int argc, char *argv[]){
 	int num_puerto;
 	char *bitacora_entrada, *bitacora_salida;
 	FILE *fp_entrada, *fp_salida;
-	int capacidad = 5;
+	int capacidad = 200;
 
 
 	if (argc != 7) {
@@ -322,22 +267,9 @@ int main(int argc, char *argv[]){
 		    		m_inicio = tmp->tm_min;
 		    		s_inicio = tmp->tm_sec;
 
-		    		char aux[10];
-		    		strcpy(aux,placa_vehiculo); 
-		    		for(i=0;i<5;i++){
+		    		estacionar_vehiculo (placa_vehiculo,inicio);
 
-		    			// Encontrar posición libre del arreglo de vehiculos en el estacionamiento
-		    			if (veh_estacionados[i].activo == 0){
-		    				strcpy(veh_estacionados[i].placa_vehiculo,aux);
-		    				veh_estacionados[i].identificador = generador_ids(i);
-		    				veh_estacionados[i].entrada = inicio;
-		    				veh_estacionados[i].activo = 1;
-		    				fprintf(stderr,"SE GUARDO UN CARRO EN LA POSICION %d\n",i);
 
-		    				i=5;
-		    			}
-
-		    		}
 
 		    		memset(buf_salida, 0, sizeof(buf_salida));
 		    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
@@ -366,17 +298,19 @@ int main(int argc, char *argv[]){
 			
 		} // cierre del if de entrada
 
+
+		// El vehiculo desea salir del estacionamiento
 		else{
+			// Verificacion de placa valida
 			if (verificar_placa(placa_vehiculo) == 1){
 				int tarifa_total,posicion;
 				capacidad++;
 
-		    	posicion = posicion_vehiculo (placa_vehiculo);
-
 		    	time_t fin = time(NULL);
 		    	struct tm *tmp = localtime(&fin);
 
-		    	tarifa_total = tarifa(veh_estacionados[posicion].entrada,fin);
+		    	// Calculo de tarifa 
+		    	tarifa_total = salida_vehiculo(placa_vehiculo,fin);
 
 		    	memset(buf_salida, 0, sizeof(buf_salida));
 		    	sprintf(buf_salida,"La tarifa total a pagar es %d",tarifa_total);
@@ -390,6 +324,7 @@ int main(int argc, char *argv[]){
 
 			}
 
+			// El vehiculo ingreso con una placa invalida
 			else{
 
 				memset(buf_salida, 0, sizeof(buf_salida));
@@ -401,28 +336,111 @@ int main(int argc, char *argv[]){
 					exit(2);
 				}
 			}
-
-
 		}
-		/////// IF LA OPCION DE BUFFER ES ENTRADAAAAAAAAAAAA
-		
-
-		// PARA IMPRIMIR EN EL TICKET
-  
-
-
-
-        //////////// IF LA OPCION ES DE SALIDAAAAAA
-        //time_t salida =time(NULL);
-        //tarifa_total = tarifa(inicio,salida); 
+	}
+	/* cerramos descriptor del socket */
+	close(sockfd);
+	//exit (0);
+}
 
 
 
-		/* cerramos descriptor del socket */
-		//close(sockfd);
-		//exit (0);
+
+int tarifa (time_t inicio, time_t salida){
+	double segundos_totales;
+	int minutos,fraccion,fraccion_aux,total;
+	segundos_totales = difftime(inicio, salida);
+	minutos = segundos_totales/60;
+
+	if (minutos>60){
+		minutos = minutos - 60;
+		fraccion = minutos/60;
+		fraccion_aux = minutos%60;
+		if (fraccion_aux>0){
+			minutos = fraccion + 1;
+		}
+		else{
+			minutos = fraccion;
+		}
+
+		total = 80 + (minutos*30);
+	}
+
+	else{
+		total = 80;
+	}
+
+	return total;
+}
+
+int posicion_vehiculo(char *placa){
+	int i = 0;
+
+	for(i=0; i<MAX_VEHICULOS; i++){
+
+		if (strcmp(veh_estacionados[i].placa_vehiculo,placa)==0){
+			return i;
+		}
+	}
+	return -100;
+}
+
+int salida_vehiculo(char *placa, time_t salida){
+	int posicion,tarifa_v;
+
+	posicion = posicion_vehiculo(placa);
+	tarifa_v = tarifa (veh_estacionados[posicion].entrada,salida);
+	// Se procede a liberar la informacion correspondiente al puesto
+	veh_estacionados[posicion].activo = 0;
+	memset(veh_estacionados[posicion].placa_vehiculo, 0, sizeof(veh_estacionados[posicion].placa_vehiculo));
+
+	return tarifa_v;
+
+}
+
+
+unsigned long generador_ids(int id){
+		struct timeval t;
+        unsigned long identificador_vehiculo;
+        gettimeofday(&t,NULL);
+        identificador_vehiculo = ((t.tv_sec * 1000 * 1000) + (t.tv_usec * 1000))<< 42;
+        identificador_vehiculo |= (id % 16777216) << 24;
+        return identificador_vehiculo;
+
+}
+
+
+void estacionar_vehiculo(char *placa, time_t entrada){
+	int i;
+
+	for(i=0;i<MAX_VEHICULOS;i++){
+		fprintf(stderr,"EN LA POSICION %d EL ESTADO ES  %d\n",i,veh_estacionados[i].activo);
+	// Encontrar posición libre del arreglo de vehiculos en el estacionamiento
+		if (veh_estacionados[i].activo == 0){
+
+			strcpy(veh_estacionados[i].placa_vehiculo,placa);
+			veh_estacionados[i].identificador = generador_ids(i);
+			veh_estacionados[i].entrada = entrada;
+			veh_estacionados[i].activo = 1;
+			fprintf(stderr,"SE GUARDO UN CARRO EN LA POSICION %d\n",i);
+			i=MAX_VEHICULOS;
+		}
 
 	}
+}
+
+int verificar_placa(char *placa){
+	int i = 0;
+
+	for(i=0; i<MAX_VEHICULOS; i++){
+
+		if ((veh_estacionados[i].activo == 1) && (strcmp(veh_estacionados[i].placa_vehiculo,placa)==0)){
+			fprintf(stderr,"LA PLACA EN LA POSICION %d ES LA SIGUIENTE %s\n",i,veh_estacionados[i].placa_vehiculo);
+			fprintf(stderr,"ESTOY VERIFCICANDO -------> ESTOY EN LA POSICION %d Y MI PLACA ES %s\n",i,placa);
+			return 1;
+		}
+	}
+	return 0;
 }
 
 
