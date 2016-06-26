@@ -37,7 +37,7 @@ vehiculos veh_estacionados[200];
 int tarifa (time_t inicio, time_t salida);
 int posicion_vehiculo(char *placa);
 int salida_vehiculo(char *placa, time_t salida);
-unsigned long generador_ids(int id);
+int generador_ids(int id);
 void estacionar_vehiculo(char* ticket, char *placa, time_t entrada);
 int verificar_placa(char *placa);
 
