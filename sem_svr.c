@@ -41,6 +41,7 @@ typedef struct info {
 
 vehiculos veh_estacionados[200];
 
+int cont = 0;
 
 int tarifa (time_t inicio, time_t salida);
 int posicion_vehiculo(char *placa);
@@ -61,6 +62,8 @@ int main(int argc, char *argv[]){
     char *bitacora_entrada;
     char *bitacora_salida;
     char buf[BUFFER_LEN];
+    char buf_salida[255] = "";
+    char buf_aux[255] = "";
 
 	if (argc != 7) {
         fprintf(stderr,"ERROR, cantidad invalida de argumentos\n");
@@ -191,19 +194,39 @@ int main(int argc, char *argv[]){
             exit(3);
         }
         else{
-            data* mis_datos = malloc(sizeof(data));
-            mis_datos->socket = sockfd;
-            mis_datos->numbytes = numbytes;
-            mis_datos->bitacora_entrada = bitacora_entrada;
-            mis_datos->bitacora_salida = bitacora_salida;
-            strcpy(mis_datos->buf,buf);
-            mis_datos->their_addr = their_addr;
-            pthread_t tid;
-            if (pthread_create(&tid,NULL,&handle_connection,mis_datos)) {
-                fprintf(stderr, "No threads for you.\n");
-                return 1;
+            if(cont < 3){
+                cont++;
+                data* mis_datos = malloc(sizeof(data));
+                mis_datos->socket = sockfd;
+                mis_datos->numbytes = numbytes;
+                mis_datos->bitacora_entrada = bitacora_entrada;
+                mis_datos->bitacora_salida = bitacora_salida;
+                strcpy(mis_datos->buf,buf);
+                mis_datos->their_addr = their_addr;
+                pthread_t tid;
+                if (pthread_create(&tid,NULL,&handle_connection,mis_datos)) {
+                    fprintf(stderr, "No threads for you.\n");
+                    return 1;
+                }
+                pthread_detach(tid);    
             }
-            pthread_detach(tid);    
+            else{
+                char bytes[5];
+                sprintf(bytes, "%d", numbytes);
+                strcat(bytes,"!");
+                fprintf(stderr,"BYTES QUE RECIBI  %s\n",bytes);
+                memset(buf_salida, 0, sizeof(buf_salida));
+                strcpy(buf_salida,bytes);
+                sprintf(buf_aux,"Las taquillas se encuentran ocupadas. Por favor espere.");
+                strcat(buf_salida,buf_aux);
+                // Se envia la informacion al cliente
+                if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+                sizeof(struct sockaddr))) == -1) {
+                    perror("sendto");
+                    exit(2);
+                }
+            }
+                
         }
 		// new_sock = malloc(1);
   //       *new_sock = sockfd;
@@ -236,161 +259,166 @@ void *handle_connection(void *datos) {
     struct sockaddr_in their_addr = recibe.their_addr; /* direccion IP y numero de puerto del cliente */
 	
 
-/* Se reciben los datos (directamente, UDP no necesita conexión) */
-		int dia_incio, mes_inicio, ano_inicio, h_inicio, m_inicio, s_inicio,tarifa_total;
-		
-		char bytes[5];
-		sprintf(bytes, "%d", numbytes);
-		strcat(bytes,"!");
-		fprintf(stderr,"BYTES QUE RECIBI  %s\n",bytes);
+    /* Se reciben los datos (directamente, UDP no necesita conexión) */
+	int dia_incio, mes_inicio, ano_inicio, h_inicio, m_inicio, s_inicio,tarifa_total;
+	
+	char bytes[5];
+	sprintf(bytes, "%d", numbytes);
+	strcat(bytes,"!");
+	fprintf(stderr,"BYTES QUE RECIBI  %s\n",bytes);
 
-		/* Se visualiza lo recibido */
-		char *ptr;
-		int opcion;
-		char placa_vehiculo[10];
+	/* Se visualiza lo recibido */
+	char *ptr;
+	int opcion;
+	char placa_vehiculo[10];
 
-		buf[numbytes] = '\0';
-		ptr = strtok(buf, " ");
+	buf[numbytes] = '\0';
+	ptr = strtok(buf, " ");
 
-		/* Obtengo si el vehiculo desea salir o entrar*/
-		opcion = atoi(ptr);
+	/* Obtengo si el vehiculo desea salir o entrar*/
+	opcion = atoi(ptr);
 
-		while(ptr != NULL){
-			/* Obtengo la placa del vehiculo */
-			strcpy(placa_vehiculo,ptr);
-			ptr = strtok(NULL, " ");
-		}
-		fprintf(stderr,"LA PLACA DEL VEHICULO QUE ENTRO ES %s\n",placa_vehiculo);
-		// ENTRADA DE UN VEHICULO
-		if (opcion == 1){
-			int i;
+	while(ptr != NULL){
+		/* Obtengo la placa del vehiculo */
+		strcpy(placa_vehiculo,ptr);
+		ptr = strtok(NULL, " ");
+	}
+	fprintf(stderr,"LA PLACA DEL VEHICULO QUE ENTRO ES %s\n",placa_vehiculo);
+	// ENTRADA DE UN VEHICULO
+	if (opcion == 1){
+		int i;
 
-			// Se chequea si hay espacio para dejar entrar al vehicula
-			if (capacidad>0){
-				fprintf(stderr,"ESTOY SOLICITANDO ENTRAR AL ESTANCIONAMIENTO, MI PLACA ES %s\n",placa_vehiculo);
-				// Se verifica que no haya un vehiculo con la placa
-				if (verificar_placa(placa_vehiculo) == 1){
-					fprintf(stderr,"MI PLACA ES %s Y YA EXISTE\n",placa_vehiculo);
-					memset(buf_salida, 0, sizeof(buf_salida));
-					strcpy(buf_salida,bytes);
-					sprintf(buf_aux,"ERROR, ya existe un vehiculo con la placa %s estacionado",placa_vehiculo);
-					strcat(buf_salida,buf_aux);
-					// Se le notifica al cliente de que no puede ingresar un carro con dicha placa
-        			if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
-						sizeof(struct sockaddr))) == -1) {
-						perror("sendto");
-						exit(2);
-					}
-				}
-
-				else{
-					capacidad--;
-					int posicion;
-					time_t inicio = time(NULL);
-		    		struct tm *tmp = localtime(&inicio);
-
-		    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
-		    		estacionar_vehiculo (ticket_entrada,placa_vehiculo,inicio);
-
-		    		posicion = posicion_vehiculo(placa_vehiculo);
-
-		    		fp_entrada = fopen(bitacora_entrada,"a");
-			        if (!(fp_entrada)){
-						fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
-			   		}
-
-			   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO: %s  PLACA VEHICULO: %s CODIGO VEHÍCULO: %d	\n",
-		   			veh_estacionados[posicion].ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
-		    		fclose(fp_entrada);
-
-		    		memset(buf_salida, 0, sizeof(buf_salida));
-		    		strcpy(buf_salida,bytes);
-		    		strcpy(buf_aux, ticket_entrada);
-		    		strcat(buf_salida,buf_aux);
-		    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
-					sizeof(struct sockaddr))) == -1) {
-						perror("sendto");
-						exit(2);
-					}//if sendto
-				}// else de placa que no existe en el estacionamiento
-			}// if de que hay capacidad en el estacionamiento
-
-			// No hay capacidad para almacenar el vehiculo
-			else{
+		// Se chequea si hay espacio para dejar entrar al vehicula
+		if (capacidad>0){
+			fprintf(stderr,"ESTOY SOLICITANDO ENTRAR AL ESTANCIONAMIENTO, MI PLACA ES %s\n",placa_vehiculo);
+			// Se verifica que no haya un vehiculo con la placa
+			if (verificar_placa(placa_vehiculo) == 1){
+				fprintf(stderr,"MI PLACA ES %s Y YA EXISTE\n",placa_vehiculo);
 				memset(buf_salida, 0, sizeof(buf_salida));
 				strcpy(buf_salida,bytes);
-				sprintf(buf_aux,"El estacionamiento esta lleno. Por favor espere.");
+				sprintf(buf_aux,"ERROR, ya existe un vehiculo con la placa %s estacionado",placa_vehiculo);
 				strcat(buf_salida,buf_aux);
-				// Se envia la informacion al cliente
-        		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
-				sizeof(struct sockaddr))) == -1) {
+				// Se le notifica al cliente de que no puede ingresar un carro con dicha placa
+                cont--;
+    			if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+					sizeof(struct sockaddr))) == -1) {
 					perror("sendto");
 					exit(2);
 				}
-
 			}
-			
-		} // cierre del if de entrada
 
+			else{
+				capacidad--;
+				int posicion;
+				time_t inicio = time(NULL);
+	    		struct tm *tmp = localtime(&inicio);
 
-		// El vehiculo desea salir del estacionamiento
-		else{
-			// Verificacion de placa valida
-			if (verificar_placa(placa_vehiculo) == 1){
-				int tarifa_total,p;
-				capacidad++;
+	    		strftime(ticket_entrada, sizeof(ticket_entrada), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
+	    		estacionar_vehiculo (ticket_entrada,placa_vehiculo,inicio);
 
-				fprintf(stderr,"ESTOY TRATANDO DE SALIR MI PLACA ES %s",placa_vehiculo);
-		    	time_t fin = time(NULL);
-		    	struct tm *tmp = localtime(&fin);
+	    		posicion = posicion_vehiculo(placa_vehiculo);
 
-		    	strftime(ticket_salida, sizeof(ticket_salida), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
-
-		    	// Calculo de tarifa 
-	    		p = posicion_vehiculo(placa_vehiculo);
-	    		fprintf(stderr,"ESTOY TRATANDO DE SALIR MI IDENTIFICADOR ES %d",veh_estacionados[p].identificador);
-	    		tarifa_total = salida_vehiculo(placa_vehiculo,fin);
-
-
-		    	fp_salida = fopen(bitacora_salida,"a");
-		        if (!(fp_salida)){
+	    		fp_entrada = fopen(bitacora_entrada,"a");
+		        if (!(fp_entrada)){
 					fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
 		   		}
-		   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO: %s 	FECHA Y HORA DE SALIDA: %s	PLACA VEHICULO: %s 	CODIGO VEHÍCULO: %d	 MONTO A CANCELAR: %d\n",
-		   			veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
 
-		    	fclose(fp_salida);
+		   		fprintf(fp_entrada,"FECHA Y HORA DE INGRESO: %s  PLACA VEHICULO: %s CODIGO VEHÍCULO: %d	\n",
+	   			veh_estacionados[posicion].ticket_entrada,placa_vehiculo,veh_estacionados[posicion].identificador);
+	    		fclose(fp_entrada);
 
 	    		memset(buf_salida, 0, sizeof(buf_salida));
 	    		strcpy(buf_salida,bytes);
-	    		memset(buf_aux, 0, sizeof(buf_aux));
-		    	sprintf(buf_aux,"La tarifa total a pagar es %d",tarifa_total);
-		    	strcat(buf_salida,buf_aux);
-				// Se envia la informacion al cliente
-        		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+	    		strcpy(buf_aux, ticket_entrada);
+	    		strcat(buf_salida,buf_aux);
+                cont--;
+	    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
 				sizeof(struct sockaddr))) == -1) {
 					perror("sendto");
 					exit(2);
-				}
+				}//if sendto
+			}// else de placa que no existe en el estacionamiento
+		}// if de que hay capacidad en el estacionamiento
 
-
+		// No hay capacidad para almacenar el vehiculo
+		else{
+			memset(buf_salida, 0, sizeof(buf_salida));
+			strcpy(buf_salida,bytes);
+			sprintf(buf_aux,"El estacionamiento esta lleno. Por favor espere.");
+			strcat(buf_salida,buf_aux);
+			// Se envia la informacion al cliente
+            cont--;
+    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+			sizeof(struct sockaddr))) == -1) {
+				perror("sendto");
+				exit(2);
 			}
 
-			// El vehiculo ingreso con una placa invalida
-			else{
+		}
+		
+	} // cierre del if de entrada
 
-				memset(buf_salida, 0, sizeof(buf_salida));
-				strcpy(buf_salida,bytes);
-				sprintf(buf_aux,"No existe ningún vehiculo con la placa %s\n",placa_vehiculo);
-				strcat(buf_salida,buf_aux);
-				// Se envia la informacion al cliente
-        		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
-				sizeof(struct sockaddr))) == -1) {
-					perror("sendto");
-					exit(2);
-				}
+
+	// El vehiculo desea salir del estacionamiento
+	else{
+		// Verificacion de placa valida
+		if (verificar_placa(placa_vehiculo) == 1){
+			int tarifa_total,p;
+			capacidad++;
+
+			fprintf(stderr,"ESTOY TRATANDO DE SALIR MI PLACA ES %s",placa_vehiculo);
+	    	time_t fin = time(NULL);
+	    	struct tm *tmp = localtime(&fin);
+
+	    	strftime(ticket_salida, sizeof(ticket_salida), "%a %Y-%m-%d %H:%M:%S %Z", tmp);
+
+	    	// Calculo de tarifa 
+    		p = posicion_vehiculo(placa_vehiculo);
+    		fprintf(stderr,"ESTOY TRATANDO DE SALIR MI IDENTIFICADOR ES %d",veh_estacionados[p].identificador);
+    		tarifa_total = salida_vehiculo(placa_vehiculo,fin);
+
+
+	    	fp_salida = fopen(bitacora_salida,"a");
+	        if (!(fp_salida)){
+				fprintf(stderr,"ERROR, el archivo de salida no se abrió correctamente\n");
+	   		}
+	   		fprintf(fp_salida,"FECHA Y HORA DE INGRESO: %s 	FECHA Y HORA DE SALIDA: %s	PLACA VEHICULO: %s 	CODIGO VEHÍCULO: %d	 MONTO A CANCELAR: %d\n",
+	   			veh_estacionados[p].ticket_entrada,ticket_salida,placa_vehiculo,veh_estacionados[p].identificador,tarifa_total);
+
+	    	fclose(fp_salida);
+
+    		memset(buf_salida, 0, sizeof(buf_salida));
+    		strcpy(buf_salida,bytes);
+    		memset(buf_aux, 0, sizeof(buf_aux));
+	    	sprintf(buf_aux,"La tarifa total a pagar es %d",tarifa_total);
+	    	strcat(buf_salida,buf_aux);
+			// Se envia la informacion al cliente
+            cont--;
+    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+			sizeof(struct sockaddr))) == -1) {
+				perror("sendto");
+				exit(2);
+			}
+
+
+		}
+
+		// El vehiculo ingreso con una placa invalida
+		else{
+
+			memset(buf_salida, 0, sizeof(buf_salida));
+			strcpy(buf_salida,bytes);
+			sprintf(buf_aux,"No existe ningún vehiculo con la placa %s\n",placa_vehiculo);
+			strcat(buf_salida,buf_aux);
+			// Se envia la informacion al cliente
+            cont--;
+    		if((numbytes=sendto(sockfd,buf_salida,strlen(buf_salida),0,(struct sockaddr*) & their_addr,
+			sizeof(struct sockaddr))) == -1) {
+				perror("sendto");
+				exit(2);
 			}
 		}
+	}
 }
 
 
