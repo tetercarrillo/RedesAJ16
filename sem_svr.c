@@ -18,7 +18,6 @@
 #include <time.h>
 #include <sys/time.h>
 #include <inttypes.h>
-#define SERVER_PORT 4321
 #define BUFFER_LEN 1024
 #define MAX_VEHICULOS 200
 
@@ -31,6 +30,15 @@ typedef struct vehiculo{
 	char ticket_entrada[50];
 } vehiculos;
 
+typedef struct info {
+	int socket;
+	int numbytes;
+    char *bitacora_entrada;
+    char *bitacora_salida;
+    char buf[BUFFER_LEN]; /* Buffer de recepción */
+    struct sockaddr_in their_addr;
+} data;
+
 vehiculos veh_estacionados[200];
 
 
@@ -40,28 +48,19 @@ int salida_vehiculo(char *placa, time_t salida);
 unsigned long generador_ids(int id);
 void estacionar_vehiculo(char* ticket, char *placa, time_t entrada);
 int verificar_placa(char *placa);
+void *handle_connection(void *data);
 
 
 
 int main(int argc, char *argv[]){
-	char buf_salida[255] = "";
-	char buf_aux[255] = "";
-	char ticket_entrada[50]="";
-	char ticket_salida[50]="";
-	int sockfd,bit_dia,bit_mes,bit_ano;
-	 /* descriptor para el socket */
-	struct sockaddr_in my_addr; /* direccion IP y numero de puerto local */
-	struct sockaddr_in their_addr; /* direccion IP y numero de puerto del cliente */
-	/* addr_len contendra el taman~o de la estructura sockadd_in y numbytes el
-	* numero de bytes recibidos */
-	int addr_len, numbytes;
-	char buf[BUFFER_LEN]; /* Buffer de recepción */
+	int sockfd, *new_sock;
 	int num_puerto;
-	char *bitacora_entrada, *bitacora_salida;
-	FILE *fp_entrada, *fp_salida;
-	int capacidad = 200;
-
-
+	struct sockaddr_in my_addr; /* direccion IP y numero de puerto local */
+	int addr_len, numbytes;
+    struct sockaddr_in their_addr; /* direccion IP y numero de puerto del cliente */
+    char *bitacora_entrada;
+    char *bitacora_salida;
+    char buf[BUFFER_LEN];
 
 	if (argc != 7) {
         fprintf(stderr,"ERROR, cantidad invalida de argumentos\n");
@@ -170,7 +169,7 @@ int main(int argc, char *argv[]){
 	}
 	/* Se establece la estructura my_addr para luego llamar a bind() */
 	my_addr.sin_family = AF_INET; /* usa host byte order */
-	my_addr.sin_port = htons(SERVER_PORT); /* usa network byte order */
+	my_addr.sin_port = htons(num_puerto); /* usa network byte order */
 	my_addr.sin_addr.s_addr = INADDR_ANY; /* escuchamos en todas las IPs */
 	bzero(&(my_addr.sin_zero), 8); /* rellena con ceros el resto de la estructura */
 	/* Se le da un nombre al socket (se lo asocia al puerto e IPs) */
@@ -182,18 +181,64 @@ int main(int argc, char *argv[]){
 		exit(2);
 	}
 
-
 	while (1){
-		/* Se reciben los datos (directamente, UDP no necesita conexión) */
-		int dia_incio, mes_inicio, ano_inicio, h_inicio, m_inicio, s_inicio,tarifa_total;
-		addr_len = sizeof(struct sockaddr);
-		printf("Esperando datos ....\n");
+        addr_len = sizeof(struct sockaddr);
+        printf("Esperando datos ....\n");
 
-		if ((numbytes=recvfrom(sockfd, buf, BUFFER_LEN, 0, (struct sockaddr *)&their_addr,
-			(socklen_t *)&addr_len)) == -1) {
-			perror("recvfrom");
-			exit(3);
-		}
+        if ((numbytes=recvfrom(sockfd, buf, BUFFER_LEN, 0, (struct sockaddr *)&their_addr,
+            (socklen_t *)&addr_len)) == -1) {
+            perror("recvfrom");
+            exit(3);
+        }
+        else{
+            data* mis_datos = malloc(sizeof(data));
+            mis_datos->socket = sockfd;
+            mis_datos->numbytes = numbytes;
+            mis_datos->bitacora_entrada = bitacora_entrada;
+            mis_datos->bitacora_salida = bitacora_salida;
+            strcpy(mis_datos->buf,buf);
+            mis_datos->their_addr = their_addr;
+            pthread_t tid;
+            if (pthread_create(&tid,NULL,&handle_connection,mis_datos)) {
+                fprintf(stderr, "No threads for you.\n");
+                return 1;
+            }
+            pthread_detach(tid);    
+        }
+		// new_sock = malloc(1);
+  //       *new_sock = sockfd;
+        
+	}
+	/* cerramos descriptor del socket */
+	close(sockfd);
+	//exit (0);
+}
+
+void *handle_connection(void *datos) {
+	// int sockfd = *(int*) data;
+    data recibe = *((data *)datos);
+    int sockfd = recibe.socket;
+    int numbytes = recibe.numbytes;
+    char buf[BUFFER_LEN];
+    strcpy(buf, recibe.buf);
+    char *bitacora_entrada = recibe.bitacora_entrada;
+    char *bitacora_salida = recibe.bitacora_salida;
+    char buf_salida[255] = "";
+	char buf_aux[255] = "";
+	char ticket_entrada[50]="";
+	char ticket_salida[50]="";
+	FILE *fp_entrada, *fp_salida;
+	int capacidad = 200;
+		 /* descriptor para el socket */
+	/* addr_len contendra el taman~o de la estructura sockadd_in y numbytes el
+	* numero de bytes recibidos */
+	// int addr_len;
+    struct sockaddr_in their_addr = recibe.their_addr; /* direccion IP y numero de puerto del cliente */
+	
+
+/* Se reciben los datos (directamente, UDP no necesita conexión) */
+		int dia_incio, mes_inicio, ano_inicio, h_inicio, m_inicio, s_inicio,tarifa_total;
+		
 		char bytes[5];
 		sprintf(bytes, "%d", numbytes);
 		strcat(bytes,"!");
@@ -346,13 +391,7 @@ int main(int argc, char *argv[]){
 				}
 			}
 		}
-	}
-	/* cerramos descriptor del socket */
-	close(sockfd);
-	//exit (0);
 }
-
-
 
 
 int tarifa (time_t inicio, time_t salida){

@@ -1,10 +1,10 @@
 all: sem_cli sem_svr
 
 sem_cli: sem_cli.o
-	gcc sem_cli.o -o sem_cli
+	gcc -pthread sem_cli.o -o sem_cli
 
 sem_svr: sem_svr.o
-	gcc sem_svr.o -o sem_svr
+	gcc -pthread sem_svr.o -o sem_svr
 
 clean:
 	rm -f *.o *.txt *.gch main || true

@@ -15,7 +15,6 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #define BUFFER_LEN 1024
-#define SERVER_PORT 4321
 
 int main(int argc, char *argv[]){
 
@@ -261,7 +260,7 @@ int main(int argc, char *argv[]){
 
 	/* a donde mandar */
 	their_addr.sin_family = AF_INET; /* usa host byte order */
-	their_addr.sin_port = htons(SERVER_PORT); /* usa network byte order */
+	their_addr.sin_port = htons(num_puerto); /* usa network byte order */
 	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
 	bzero(&(their_addr.sin_zero), 8); /* pone en cero el resto */
 	/* enviamos el mensaje */
