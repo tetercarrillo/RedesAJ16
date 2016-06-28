@@ -1,0 +1,81 @@
+Asignación Nº 3 - Centro Comercial Moriah
+
+Daniel Zeait            08-11216
+Maria Esther Carrillo   10-10122
+
+SOCKETS
+
+En este directorio se encuentran los siguientes archivos:
+
+    - sem_cli.c: Corresponde al código que ejecuta las acciones por parte del cliente,
+                 el cual recibe el nombre del módulo de atención, que corresponde
+                 al nombre de dominio o la dirección de IP del servidor, el número de 
+                 puerto, la acción a realizar, sea entrada o salida de un vehículo y
+                 la placa de dicho vehículo, con sus respectivas verificaciones
+                 para que la información suministrada sea válida. 
+                 Se encarga leer la información recibida en el buffer por parte del 
+                 servidor, así como también si la información recibida es confiable.
+                 Es decir, verifica si la cantidad de bytes recibidos es igual a 
+                 la cantidad de bytes mandados desde el servidor. Esto asegura que
+                 no haya información duplicada o con pérdidas. Cuenta únicamente con
+                 el main.
+
+    - sem_svr.c: Corresponde al código del servidor. En el se recibe el número de
+                puerto local en el que el computador central ofrecerá el servicio,
+                y dos archivos, una bitácora de entrada y otra de salida donde se 
+                almacenarán la operaciones de entrada y salida respectivamente,
+                con sus respectivas verificaciones para que la información suministrada
+                sea válida.
+                El archivo cuenta con dos procedimientos principales para el manejo
+                de las conexiones, 'main' y 'handle_connection' y funciones para
+                las operaciones con los vehículos, tales como 'tarifa', 'posicion_vehiculo',
+                'salida_vehiculo','estacionar_vehiculo', 'verificar_placa'. Para la
+                concurrencia de las operaciones de las 3 taquillas se implementaron hilos,
+                los cuales llaman al procedimiento 'handle_connection', que se encarga
+                de la operación del vehículo del cliente. Una vez procesada la información
+                se manda al cliente la respuesta por parte de la taquilla.
+
+    - Makefile: Genera los archivos ejecutables respectivos.
+
+Al ejecutar el código del sem_cli se realizan las verificaciones necesarias, 
+una vez que esté todo correcto se crea el socket y se manda la información
+al servidor para realizar la operación correspondiente al vehículo, sea entrada
+o salida.
+Si el vehículo ingresa al estacionamiento se imprimire la hora y el código del
+tícket, si la entrada no se hizo se imprime un mensaje de error al usuario.
+Si el vehículo desea salir del estacionamiento y la operación fue exitosa se indica
+el monto a pagar después de su estadía. Si no se pudo realizar la salida se imprime
+un mensaje de error al usuario. Se tienen 3 intentos para cualquiera de las operaciones.
+Si el servidor no contesta al tercer intento termina la ejecución y el cliente cierra el
+socket.
+
+Al ejecutar el servidor, del mismo modo se realizan las verificaciones necesarias.
+Se abre socket y se itera en un ciclo infinito que recibe información del cliente.
+Cuando reciba alguna solicitud de conexión y se le asigna un hilo a cada conexión nueva.
+Como solo hay tres taquillas, solo puede haber hasta tres hilos ejecutándose a la vez.
+En el nuevo hilo se realizarán las verificaciones pertinente para poder indicarle al 
+usuario si su vehículo pudo entrar o salir, dependiendo de la operaciónasí como también
+si el estacionamiento está lleno, si el vehículo que está accediendoya se encuentra en el
+estacionamiento o si el vehículo que está pidiendo salida no existe en el estacionamiento.
+Si la operación es de estada se guarda la información del vehículo en un arreglo de estructuras
+con de capacidad de hasta 200, que representa los puestos de estacionamiento totales. 
+En caso de que la operación de salida sea satisfactoria, se calcula el monto a cancelar y se 
+libera el puesto al que estaba asignado el vehículo.
+
+El cliente se ejecuta: 
+    ./sem_cli -d <nombre_módulo_atención> -p <puerto_sem_svr> - c <op> -i <identificación_vehiculo>
+El servidor se ejecuta: 
+    sem_svr -l <puerto_sem_svr> -i <bitácora_entrada> - o <bitácora_salida>
+
+Para ambas invocaciones los parámetros se pueden llamar en orden diferente.
+El puerto a utilizar debe ser 20122 0 21216
+
+Consideraciones especiales:
+    - En el servidor la el arreglo creado para almacenar la información de los vehículos
+      estacionados es de 200 puestos.
+    - Se espera que en el cliente que el usuario introduzca un opción de tipo 'e' o 's'.
+    - Los archivos de las bitácoras se crean cuando se invoca al servidor.
+
+
+
+ 

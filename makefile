@@ -7,5 +7,5 @@ sem_svr: sem_svr.o
 	gcc -pthread sem_svr.o -o sem_svr
 
 clean:
-	rm -f *.o *.txt *.gch main || true
+	rm -f *.o *.gch main || true
 	rm sem_svr sem_cli || true
